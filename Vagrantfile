@@ -3,7 +3,7 @@
 
 
 ipythonPort = 8888
-ipythonHost = 4545
+ipythonHost = 8888
 sparkUIPort = 4040
 
 
@@ -18,14 +18,15 @@ apt-get -y install python-pip
 # ANACONDA
 anaconda=Anaconda-2.3.0-Linux-x86_64.sh
 if [[ ! -f $anaconda ]]; then
-	wget --quiet https://3230d63b5fc54e62148e-c95ac804525aac4b6dba79b00b39d1d3.ssl.cf1.rackcdn.com/$anaconda
-fi
-chmod +x $anaconda
-./$anaconda -b -p /home/vagrant/anaconda
-cat >> /home/vagrant/.bashrc << END
-export PATH=/home/vagrant/anaconda/bin:$PATH
+	wget --quiet https://repo.anaconda.com/archive/$anaconda
+  chmod +x $anaconda
+  ./$anaconda -b -p /home/vagrant/anaconda
+  cat >> /home/vagrant/.bashrc << END
+  export PATH=/home/vagrant/anaconda/bin:$PATH
 END
-rm $anaconda
+fi
+
+# rm $anaconda
 
 # JAVA
 apt-get -y install openjdk-7-jdk
@@ -33,29 +34,30 @@ apt-get -y install openjdk-7-jdk
 # APACHE SPARK
 spark=spark-1.4.1-bin-hadoop2.6.tgz
 if [[ ! -f $spark ]]; then
-	wget --quiet http://d3kbcqa49mib13.cloudfront.net/$spark
+	wget --quiet https://archive.apache.org/dist/spark/spark-1.4.1/$spark
+  tar xvf $spark
+  # rm $spark
+  mv spark-1.4.1-bin-hadoop2.6 spark
 fi
-tar xvf $spark
-rm $spark
-mv spark-1.4.1-bin-hadoop2.6 spark
+
 
 # Install findspark & seaborn
-/home/vagrant/anaconda/bin/pip install findspark seaborn
+/home/vagrant/anaconda/bin/pip install findspark==2.0.1 seaborn==0.8.0
 
 echo 'SPARK_HOME=/home/vagrant/spark' >> /etc/environment
 echo 'PYSPARK_PYTHON=/home/vagrant/anaconda/bin/python' >> /etc/environment
 
 # Start ipython notebook
-sed -i "17i su vagrant -c 'cd /home/vagrant && /home/vagrant/anaconda/bin/ipython notebook --ip=\\"*\\"'" /etc/rc.local
+# sed -i "17i su vagrant -c 'cd /home/vagrant && /home/vagrant/anaconda/bin/ipython notebook --ip=\\"*\\"'" /etc/rc.local
+cd /home/vagrant && /home/vagrant/anaconda/bin/ipython notebook --ip=0.0.0.0 --no-browser > jupyter.log 2>&1 &
 
 SCRIPT
 
 
 Vagrant.configure(2) do |config|
-  config.vm.box = "hashicorp/precise64"
+  config.vm.box = "trusty64"
 
-  config.vm.network "forwarded_port", guest: ipythonPort, host: ipythonHost,
-    auto_correct: true
+  config.vm.network "forwarded_port", guest: ipythonPort, host: ipythonHost, host_ip: "127.0.0.1", guest_ip: "0.0.0.0"
 
   config.vm.network "forwarded_port", guest: sparkUIPort, host: sparkUIPort,
     auto_correct: true
